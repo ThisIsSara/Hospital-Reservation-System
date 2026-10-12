@@ -25,8 +25,7 @@ shows a success or error message on the confirmation page.
 | `frontend/` | `register.html`, `login.html`, `doctors.html`, `booking.html`, `style.css`, `script.js` |
 | `backend/` | `db.php`, `register.php`, `login.php`, `doctors.php`, `book.php`, session helpers and example configuration |
 | `database/schema.sql` | Database, four tables and sample data |
-| `tests/integration.php` | Automated HTTP and MySQL checks |
-| `docs/sprint-1/` | Sprint documentation and test results |
+| `docs/sprint-1/` | Scrum documentation |
 | `index.php` | Redirect to the login page |
 
 Database: `hospital_reservation`. Tables: `patients`, `doctors`, `slots`,
@@ -73,16 +72,3 @@ Use the PHP server rather than opening HTML files directly or through a static
 Live Server. Reimporting the SQL keeps existing records; it does not migrate an
 incompatible schema. If sample dates have expired, update unbooked times in
 Workbench before the demonstration.
-
-## Testing
-
-With the server running, open a second PowerShell terminal in the project folder:
-
-```powershell
-C:\php\php.exe tests\integration.php http://127.0.0.1:8000
-```
-
-Use a freshly seeded local database and enable PHP's `allow_url_fopen`. The tests
-create temporary accounts and slots, then remove those test rows. See
-[TESTING.md](docs/sprint-1/TESTING.md) for executed results and pending manual checks.
-Windows setup and real-browser interaction have not been tested.
