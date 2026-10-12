@@ -1,5 +1,5 @@
 <?php
-// Aryam: validate and save the registration form.
+// Validate and save a patient account.
 require __DIR__ . '/common.php';
 require __DIR__ . '/db.php';
 require_post();

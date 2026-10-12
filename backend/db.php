@@ -1,5 +1,5 @@
 <?php
-// Aryam: PDO connection. Credentials belong only in config.local.php.
+// Read local settings and connect to MySQL using PDO.
 function database(): PDO
 {
     static $connection = null;

@@ -1,5 +1,4 @@
--- Tala: one file creates the database, four tables and sample data.
--- No DROP, DELETE or TRUNCATE statements; existing databases are not cleared.
+-- Create the database, tables and sample data.
 CREATE DATABASE IF NOT EXISTS hospital_reservation CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE hospital_reservation;
 SET time_zone = '+03:00';
@@ -37,15 +36,14 @@ CREATE TABLE IF NOT EXISTS appointments (
     FOREIGN KEY (slot_id) REFERENCES slots (id)
 ) ENGINE=InnoDB;
 
--- Fictional sample doctors. A fresh database gets three doctors, two slots each.
--- Only unused IDs are inserted; existing rows with these IDs are left unchanged.
+-- Three fictional doctors. Existing IDs are left unchanged.
 INSERT IGNORE INTO doctors (id, name, specialty) VALUES
 (1, 'Dr. Amal Ahmed', 'General Medicine'),
 (2, 'Dr. Noura Ali', 'Dermatology'),
 (3, 'Dr. Khalid Omar', 'Cardiology');
 
--- Tomorrow in Riyadh time. Reimporting does not duplicate these fixed slot IDs.
--- When these dates expire, update sample times deliberately in Workbench.
+-- Six slots for tomorrow in Riyadh time. Reimporting keeps existing slots.
+-- Update expired sample times in Workbench before a later demonstration.
 INSERT IGNORE INTO slots (id, doctor_id, appointment_date, appointment_time) VALUES
 (1, 1, DATE_ADD(CURDATE(), INTERVAL 1 DAY), '09:00:00'),
 (2, 1, DATE_ADD(CURDATE(), INTERVAL 1 DAY), '10:00:00'),

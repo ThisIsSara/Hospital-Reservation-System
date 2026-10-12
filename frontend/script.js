@@ -1,5 +1,4 @@
-// Ghaliah: frontend forms and doctor display. Sarah: booking Fetch integration.
-// PHP repeats all validation; browser checks are only for user convenience.
+// Connect the forms to PHP. The server validates all submitted data.
 const page = document.body.dataset.page;
 let csrfToken = '';
 

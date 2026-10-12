@@ -1,5 +1,5 @@
 <?php
-// Sarah: save a reservation; UNIQUE(slot_id) rejects repeated/concurrent bookings.
+// Save the booking; UNIQUE(slot_id) prevents duplicates.
 require __DIR__ . '/common.php';
 require __DIR__ . '/db.php';
 require_post();

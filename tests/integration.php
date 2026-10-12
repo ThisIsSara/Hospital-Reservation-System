@@ -1,6 +1,5 @@
 <?php
-// Run with PHP CLI against a running local server and the prototype database.
-// No testing library is needed. Fixtures created here are removed in finally.
+// Run against the local PHP server; temporary test rows are cleaned up.
 if (PHP_SAPI !== 'cli') {
     http_response_code(404);
     exit;

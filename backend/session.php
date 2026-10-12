@@ -1,5 +1,5 @@
 <?php
-// HTML pages use this endpoint to obtain a CSRF token and current session details.
+// Return session details and a form token.
 require __DIR__ . '/common.php';
 respond([
     'success' => true,

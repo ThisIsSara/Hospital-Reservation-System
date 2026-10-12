@@ -1,5 +1,5 @@
 <?php
-// Shared session and JSON helpers. No framework is used.
+// Session and JSON response helpers.
 date_default_timezone_set('Asia/Riyadh');
 ini_set('session.use_strict_mode', '1');
 session_set_cookie_params([

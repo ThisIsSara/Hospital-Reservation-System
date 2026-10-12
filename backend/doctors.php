@@ -1,5 +1,5 @@
 <?php
-// Aryam: database data for doctors.html and the selected slot on booking.html.
+// Return doctors, available times or one selected slot.
 require __DIR__ . '/common.php';
 require __DIR__ . '/db.php';
 require_patient();

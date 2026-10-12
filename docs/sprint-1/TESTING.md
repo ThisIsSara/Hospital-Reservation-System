@@ -1,47 +1,47 @@
-# Sprint 1 prototype: current test record
+# Sprint 1 Testing
 
-Test date: 12 October 2026. Runtime: PHP 8.3.6, PDO MySQL and MySQL Community Server
-8.0.46 on Linux. The current HTML/Fetch version replaces the earlier PHP-rendered
-experiment. The old 41-check result does not describe this revision.
+## Executed checks
 
-## Executed tests
+Rerun on 12 October 2026 using Linux, PHP 8.3.6 with PDO MySQL, and MySQL
+Community Server 8.0.46. `tests/integration.php` completed with exit code 0:
+**47 checks passed**.
 
-`tests/integration.php` completed with exit code 0: **47 checks passed**.
-The suite sent actual HTTP requests to the PHP development server and verified
-saved rows directly in MySQL. No mocked database or replacement database was used.
+The suite sent HTTP requests to the PHP development server and checked saved
+rows in MySQL. It covered:
 
-| Area | Actual checks |
-| --- | --- |
-| Setup | Three doctors, six future slots, exact patient columns without phone; schema reimport adds no duplicates |
-| HTML | All four .html pages return HTTP 200 and include shared script.js |
-| Registration | Valid patient saved; password hash verified; empty name, invalid email, short/empty password and mismatched confirmation rejected; duplicate email rejected including uppercase variation; no invalid/duplicate rows saved |
-| Login | Wrong password and SQL injection input rejected; correct credentials accepted; response points to doctors.html; session ID regenerated; signed-in session retrieved |
-| Doctors | API returns actual MySQL doctor names and available slots; selected slot details returned; booked slot removed and cannot be loaded for new confirmation |
-| Booking | Success JSON and reservation number returned; database row belongs to session patient; forged patient_id ignored; repeated and second-patient booking rejected; past, missing and malformed slot IDs rejected |
-| Database rules | Exactly one booking remains after repeated attempts; direct duplicate INSERT rejected by UNIQUE(slot_id); nonexistent patient rejected by foreign key |
-| Session/CSRF | Token endpoint works; anonymous doctor/booking API requests blocked; GET booking blocked; missing/incorrect tokens blocked; logout removes authentication |
+- Registration validation, password hashing and duplicate email rejection.
+- Valid/invalid login and session ID regeneration.
+- Database doctor listings, available times and selected slot details.
+- Booking persistence, duplicate rejection and invalid/past slot rejection.
+- Anonymous access, CSRF tokens, session-based patient IDs and logout.
+- MySQL uniqueness/foreign-key constraints and loading the four HTML pages.
 
-After cleanup: three doctors, six sample slots, zero test accounts and zero test
-reservations. Temporary slots were also removed.
+Reimporting the schema kept three doctors and six sample slots. Test accounts,
+bookings and temporary slots were removed after the run. All 11 PHP files passed
+`php -l`; `frontend/script.js` passed `node --check`.
 
-## Limits
+## Not tested
 
-- These were HTTP/API/database integration checks. Browser clicking, screenshots
-  and Windows installation were not tested. A headless browser download was
-  attempted but failed, so no browser test success is claimed.
-- JavaScript syntax was checked with `node --check`; PHP files passed `php -l`.
-- Duplicate HTTP requests were sequential; this was not a concurrency/load test.
-- The code's frontend Fetch rendering and textContent use were reviewed, but a
-  real browser demonstration is still required by the team before submission.
+Windows installation, real-browser interaction, screenshots and simultaneous
+requests were not tested. Duplicate HTTP requests were tested sequentially.
 
-## Team demonstration checklist (not claimed as executed)
+## Manual checklist — pending
 
-1. Open register.html and register using the four required fields.
-2. Verify the patient in MySQL and log in through login.html.
-3. Verify doctors and six initial sample times in doctors.html.
-4. Choose a slot; booking.html must display the correct doctor/date/time.
-5. Confirm Booking; verify the success message and saved appointments row.
-6. Return to doctors.html; the reserved slot must be absent.
-7. Repeat the original booking request; verify the duplicate error and one row.
-8. Test duplicate email, wrong password, empty fields and anonymous booking.
-9. Capture genuine screenshots and test outcomes for the Sprint Review.
+1. Follow the Windows setup in README and open `register.html` in a browser.
+2. Register, verify the MySQL patient row, and log in through `login.html`.
+3. Check doctors/times and choose a slot; verify its details on `booking.html`.
+4. Confirm the booking; check the success message and saved MySQL reservation.
+5. Return to the doctor page and verify the booked time is no longer available.
+6. Retry the same booking and check that only one reservation exists.
+7. Try duplicate email, wrong password, empty fields and booking without login.
+8. Record genuine results and screenshots for the Sprint Review.
+
+## Run the automated suite
+
+Start the PHP server, then run in a second terminal from the project folder:
+
+```powershell
+C:\php\php.exe tests\integration.php http://127.0.0.1:8000
+```
+
+Use a freshly seeded local database and enable PHP's `allow_url_fopen`.

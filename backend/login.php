@@ -1,5 +1,5 @@
 <?php
-// Aryam: authenticate a patient and start their signed-in session.
+// Check credentials and start the patient session.
 require __DIR__ . '/common.php';
 require __DIR__ . '/db.php';
 require_post();
