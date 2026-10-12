@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+backend/config.local.php
 
 # Temporary files
 *.log
