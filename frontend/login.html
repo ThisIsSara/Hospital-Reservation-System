@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Patient Login | Hospital Reservation System</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js" defer></script>
+</head>
+<body data-page="login">
+<header class="site-header"><div class="header-inner">
+    <a class="brand" href="login.html">Hospital Reservation System</a>
+    <nav aria-label="Main navigation"><a href="login.html">Log in</a><a href="register.html">Create Account</a></nav>
+</div></header>
+<main>
+<noscript><p class="alert error">Enable JavaScript to submit forms and load appointment data.</p></noscript>
+<section class="form-card">
+    <p class="eyebrow">Patient portal</p><h1>Welcome back</h1>
+    <p>Log in to choose a doctor and an available time.</p>
+    <div id="message" role="status" hidden></div>
+    <form id="login-form" action="../backend/login.php" method="post">
+        <label for="email">Email address</label>
+        <input id="email" name="email" type="email" autocomplete="username" maxlength="190" required>
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required>
+        <button type="submit" disabled>Login</button>
+    </form>
+    <p class="form-link">New patient? <a href="register.html">Create an account</a></p>
+</section>
+</main>
+<footer>CS388T · Sprint 1 · University prototype</footer>
+</body>
+</html>

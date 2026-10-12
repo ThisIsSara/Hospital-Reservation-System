@@ -1,29 +1,29 @@
--- Dedicated prototype database. Existing team databases are not altered.
-CREATE DATABASE IF NOT EXISTS hospital_sprint1_prototype CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE hospital_sprint1_prototype;
+-- Tala: one file creates the database, four tables and sample data.
+-- No DROP, DELETE or TRUNCATE statements; existing databases are not cleared.
+CREATE DATABASE IF NOT EXISTS hospital_reservation CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE hospital_reservation;
+SET time_zone = '+03:00';
 
 CREATE TABLE IF NOT EXISTS patients (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     full_name VARCHAR(120) NOT NULL,
     email VARCHAR(190) NOT NULL,
-    phone VARCHAR(10) NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY unique_patient_email (email)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS doctors (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    full_name VARCHAR(120) NOT NULL,
+    name VARCHAR(120) NOT NULL,
     specialty VARCHAR(100) NOT NULL
 ) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS appointment_slots (
+CREATE TABLE IF NOT EXISTS slots (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     doctor_id INT UNSIGNED NOT NULL,
-    starts_at DATETIME NOT NULL,
-    UNIQUE KEY unique_doctor_time (doctor_id, starts_at),
-    UNIQUE KEY unique_slot_time (id, starts_at),
+    appointment_date DATE NOT NULL,
+    appointment_time TIME NOT NULL,
+    UNIQUE KEY unique_doctor_time (doctor_id, appointment_date, appointment_time),
     FOREIGN KEY (doctor_id) REFERENCES doctors (id)
 ) ENGINE=InnoDB;
 
@@ -31,11 +31,25 @@ CREATE TABLE IF NOT EXISTS appointments (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     patient_id INT UNSIGNED NOT NULL,
     slot_id INT UNSIGNED NOT NULL,
-    starts_at DATETIME NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY unique_reserved_slot (slot_id),
-    UNIQUE KEY unique_patient_time (patient_id, starts_at),
     FOREIGN KEY (patient_id) REFERENCES patients (id),
-    -- The stored time must match its slot, so the patient/time constraint is reliable.
-    FOREIGN KEY (slot_id, starts_at) REFERENCES appointment_slots (id, starts_at)
+    FOREIGN KEY (slot_id) REFERENCES slots (id)
 ) ENGINE=InnoDB;
+
+-- Fictional sample doctors. A fresh database gets three doctors, two slots each.
+-- Only unused IDs are inserted; existing rows with these IDs are left unchanged.
+INSERT IGNORE INTO doctors (id, name, specialty) VALUES
+(1, 'Dr. Amal Ahmed', 'General Medicine'),
+(2, 'Dr. Noura Ali', 'Dermatology'),
+(3, 'Dr. Khalid Omar', 'Cardiology');
+
+-- Tomorrow in Riyadh time. Reimporting does not duplicate these fixed slot IDs.
+-- When these dates expire, update sample times deliberately in Workbench.
+INSERT IGNORE INTO slots (id, doctor_id, appointment_date, appointment_time) VALUES
+(1, 1, DATE_ADD(CURDATE(), INTERVAL 1 DAY), '09:00:00'),
+(2, 1, DATE_ADD(CURDATE(), INTERVAL 1 DAY), '10:00:00'),
+(3, 2, DATE_ADD(CURDATE(), INTERVAL 1 DAY), '09:30:00'),
+(4, 2, DATE_ADD(CURDATE(), INTERVAL 1 DAY), '10:30:00'),
+(5, 3, DATE_ADD(CURDATE(), INTERVAL 1 DAY), '11:00:00'),
+(6, 3, DATE_ADD(CURDATE(), INTERVAL 1 DAY), '12:00:00');

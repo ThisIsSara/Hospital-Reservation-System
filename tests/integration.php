@@ -5,10 +5,11 @@ if (PHP_SAPI !== 'cli') {
     http_response_code(404);
     exit;
 }
-require __DIR__ . '/../backend/database.php';
+require __DIR__ . '/../backend/common.php';
+require __DIR__ . '/../backend/db.php';
 $config = require __DIR__ . '/../backend/config.local.php';
-if ($config['database'] !== 'hospital_sprint1_prototype') {
-    fwrite(STDERR, "Tests only run against hospital_sprint1_prototype.\n");
+if ($config['database'] !== 'hospital_reservation') {
+    fwrite(STDERR, "Tests only run against hospital_reservation.\n");
     exit(1);
 }
 $baseUrl = rtrim($argv[1] ?? 'http://127.0.0.1:8000', '/');
@@ -64,10 +65,15 @@ class TestBrowser
                 $location = substr($header, 10);
             }
         }
-        if (preg_match('/name="csrf_token" value="([^"]+)"/', $body, $match)) {
-            $this->token = $match[1];
-        }
-        return ['status' => $status, 'body' => $body, 'location' => $location];
+        
+        return ['status' => $status, 'body' => $body, 'location' => $location, 'json' => json_decode($body, true)];
+    }
+
+    public function session(): array
+    {
+        $response = $this->request('/backend/session.php');
+        $this->token = $response['json']['csrf_token'] ?? '';
+        return $response['json'];
     }
 
     public function post(string $path, array $data): array
@@ -82,140 +88,121 @@ $email1 = 'sprint1-test-' . $suffix . '@example.com';
 $email2 = 'sprint1-test-' . $suffix . '-2@example.com';
 $password = 'StudentTest123!';
 $slotIds = [];
-$patientIds = [];
 $failed = false;
 try {
-    check((int) $connection->query('SELECT COUNT(*) FROM doctors')->fetchColumn() >= 4, 'Doctors loaded from MySQL seed');
-    check((int) $connection->query('SELECT COUNT(*) FROM appointment_slots WHERE starts_at > NOW()')->fetchColumn() >= 48, 'Future sample times loaded from MySQL seed');
-
+    check((int) $connection->query('SELECT COUNT(*) FROM doctors')->fetchColumn() >= 3, 'Three sample doctors loaded from MySQL');
+    check((int) $connection->query('SELECT COUNT(*) FROM slots WHERE TIMESTAMP(appointment_date, appointment_time) > NOW()')->fetchColumn() >= 6, 'Six sample times loaded from MySQL');
+    $columns = $connection->query('SHOW COLUMNS FROM patients')->fetchAll(PDO::FETCH_COLUMN);
+    check($columns === ['id', 'full_name', 'email', 'password_hash'], 'Patient table matches the team schema, with no phone field');
+    foreach (['register', 'login', 'doctors', 'booking'] as $page) {
+        $browser = new TestBrowser();
+        $response = $browser->request('/frontend/' . $page . '.html');
+        check($response['status'] === 200 && str_contains($response['body'], 'script.js'), $page . '.html loads with the shared JavaScript');
+    }
     $anonymous = new TestBrowser();
-    $response = $anonymous->request('/frontend/doctors.php');
-    check($response['status'] === 303 && str_contains($response['location'], 'login.php'), 'Anonymous doctor access redirects to login');
-    $response = $anonymous->request('/frontend/booking.php?slot_id=1');
-    check($response['status'] === 303, 'Anonymous booking page blocked');
-    $response = $anonymous->request('/frontend/login.php');
-    check($response['status'] === 200 && $anonymous->token !== '', 'Login page and CSRF form token load');
-    check($anonymous->request('/backend/booking.php')['status'] === 405, 'GET cannot create a booking');
+    $session = $anonymous->session();
+    check(!$session['logged_in'] && $anonymous->token !== '', 'Session endpoint supplies a CSRF token without authenticating');
+    check($anonymous->request('/backend/doctors.php')['status'] === 401, 'Anonymous doctor API access rejected');
+    check($anonymous->request('/backend/book.php')['status'] === 405, 'GET cannot create a reservation');
     check($anonymous->request('/backend/register.php', ['email' => $email1])['status'] === 403, 'Missing CSRF token rejected');
     check($anonymous->request('/backend/login.php', ['csrf_token' => 'wrong'])['status'] === 403, 'Invalid CSRF token rejected');
-    check($anonymous->post('/backend/booking.php', ['slot_id' => 1])['status'] === 303, 'Anonymous booking POST rejected');
-
+    check($anonymous->post('/backend/book.php', ['slot_id' => 1])['status'] === 401, 'Anonymous booking POST rejected');
     $first = new TestBrowser();
-    $first->request('/frontend/register.php');
-    $registration = ['full_name' => 'Test Patient', 'email' => $email1, 'phone' => '0501234567',
+    $first->session();
+    $registration = ['full_name' => 'Test Patient', 'email' => $email1,
         'password' => $password, 'confirm_password' => $password];
-    foreach ([['full_name', ''], ['email', 'bad-email'], ['phone', '123'],
-              ['password', 'short'], ['confirm_password', 'different']] as [$field, $badValue]) {
+    foreach ([['full_name', ''], ['email', 'bad-email'], ['password', 'short'],
+              ['confirm_password', 'different'], ['password', '']] as [$field, $badValue]) {
         $invalid = $registration;
         $invalid[$field] = $badValue;
         $response = $first->post('/backend/register.php', $invalid);
-        check($response['status'] === 303 && str_contains($response['location'], 'register.php'), 'Server rejects invalid ' . $field);
-        $first->request('/frontend/register.php');
+        check($response['status'] === 422 && !$response['json']['success'], 'Server rejects invalid ' . $field);
     }
     $findPatient = $connection->prepare('SELECT * FROM patients WHERE email = ?');
     $findPatient->execute([$email1]);
-    check($findPatient->fetch() === false, 'Invalid submissions did not save a patient');
+    check($findPatient->fetch() === false, 'Invalid registrations did not create a patient');
     $response = $first->post('/backend/register.php', $registration);
-    check($response['status'] === 303 && str_contains($response['location'], 'login.php'), 'Valid registration redirects to login');
+    check($response['status'] === 201 && $response['json']['success'], 'Valid registration returns success JSON');
     $findPatient->execute([$email1]);
     $patient = $findPatient->fetch();
-    check($patient && $patient['full_name'] === 'Test Patient', 'Registration actually persisted in MySQL');
-    $patientIds[] = (int) $patient['id'];
-    check($patient['password_hash'] !== $password && password_verify($password, $patient['password_hash']), 'Password stored as a verifiable hash');
-    $first->request('/frontend/register.php');
+    check($patient && $patient['full_name'] === 'Test Patient', 'Patient actually saved in MySQL');
+    check($patient['password_hash'] !== $password && password_verify($password, $patient['password_hash']), 'Password saved as a verifiable hash');
     $registration['email'] = strtoupper($email1);
-    $first->post('/backend/register.php', $registration);
-    $response = $first->request('/frontend/register.php');
-    check(str_contains($response['body'], 'already exists'), 'Duplicate email rejected, including different case');
+    check($first->post('/backend/register.php', $registration)['status'] === 409, 'Duplicate email rejected, including different case');
     $countEmail = $connection->prepare('SELECT COUNT(*) FROM patients WHERE email = ?');
     $countEmail->execute([$email1]);
-    check((int) $countEmail->fetchColumn() === 1, 'Duplicate registration did not add a second row');
-
-    $first->request('/frontend/login.php');
-    $first->post('/backend/login.php', ['email' => $email1, 'password' => 'wrong-password']);
-    check(str_contains($first->request('/frontend/login.php')['body'], 'Incorrect email or password'), 'Incorrect password rejected');
-    $first->post('/backend/login.php', ['email' => "x' OR 1=1 --@example.com", 'password' => $password]);
-    check($first->request('/frontend/doctors.php')['status'] === 303, 'SQL injection input did not authenticate');
-    $first->request('/frontend/login.php');
+    check((int) $countEmail->fetchColumn() === 1, 'No duplicate patient row saved');
+    check($first->post('/backend/login.php', ['email' => $email1, 'password' => 'wrong'])['status'] === 401, 'Incorrect password rejected');
+    check(in_array($first->post('/backend/login.php', ['email' => "x' OR 1=1 --@example.com", 'password' => $password])['status'], [401, 422], true), 'SQL injection does not authenticate');
+    check(!$first->session()['logged_in'], 'Invalid login leaves the session anonymous');
     $oldCookie = $first->cookie;
     $response = $first->post('/backend/login.php', ['email' => strtoupper($email1), 'password' => $password]);
-    check($response['status'] === 303 && str_contains($response['location'], 'doctors.php'), 'Correct credentials accepted');
+    check($response['status'] === 200 && $response['json']['redirect'] === 'doctors.html', 'Correct login directs the frontend to doctors.html');
     check($first->cookie !== $oldCookie, 'Login regenerates the session ID');
-    $response = $first->request('/frontend/doctors.php');
-    $doctorName = $connection->query('SELECT full_name FROM doctors ORDER BY full_name LIMIT 1')->fetchColumn();
-    check($response['status'] === 200 && str_contains($response['body'], $doctorName) && str_contains($response['body'], 'booking.php?slot_id='), 'Doctor page displays database doctors and available slots');
-
-    // Three dedicated slots: two simultaneous doctors and one past time.
-    $doctorIds = $connection->query('SELECT id FROM doctors ORDER BY id LIMIT 2')->fetchAll(PDO::FETCH_COLUMN);
-    $time = $connection->query('SELECT DATE_ADD(NOW(), INTERVAL 30 DAY)')->fetchColumn();
-    $past = $connection->query('SELECT DATE_SUB(NOW(), INTERVAL 1 DAY)')->fetchColumn();
-    $insertSlot = $connection->prepare('INSERT INTO appointment_slots (doctor_id, starts_at) VALUES (?, ?)');
-    foreach ([[$doctorIds[0], $time], [$doctorIds[1], $time], [$doctorIds[0], $past]] as $fixture) {
+    check($first->session()['logged_in'], 'Authenticated session available to HTML pages');
+    $response = $first->request('/backend/doctors.php');
+    $doctorName = $connection->query('SELECT name FROM doctors ORDER BY name LIMIT 1')->fetchColumn();
+    check($response['status'] === 200 && in_array($doctorName, array_column($response['json']['doctors'], 'name'), true), 'Doctor API returns actual MySQL names');
+    check(count($response['json']['slots']) >= 6, 'Doctor API returns available database slots');
+    $doctorId = $connection->query('SELECT id FROM doctors ORDER BY id LIMIT 1')->fetchColumn();
+    $insertSlot = $connection->prepare('INSERT INTO slots (doctor_id, appointment_date, appointment_time) VALUES (?, ?, ?)');
+    $date = $connection->query('SELECT DATE_ADD(CURDATE(), INTERVAL 30 DAY)')->fetchColumn();
+    $past = $connection->query('SELECT DATE_SUB(CURDATE(), INTERVAL 1 DAY)')->fetchColumn();
+    foreach ([[$doctorId, $date, '14:00:00'], [$doctorId, $past, '14:00:00']] as $fixture) {
         $insertSlot->execute($fixture);
         $slotIds[] = (int) $connection->lastInsertId();
     }
-    $response = $first->request('/frontend/booking.php?slot_id=' . $slotIds[0]);
-    check($response['status'] === 200 && str_contains($response['body'], 'Confirm Booking'), 'Selected slot opens a confirmation form');
-    $response = $first->post('/backend/booking.php', ['slot_id' => $slotIds[0], 'patient_id' => 999999]);
-    check($response['status'] === 303 && str_contains($response['location'], 'appointments.php'), 'Successful booking redirects to saved appointments');
-    $response = $first->request('/frontend/appointments.php');
-    check(str_contains($response['body'], 'Appointment booked successfully.'), 'Booking success message displayed');
+    $response = $first->request('/backend/doctors.php?slot_id=' . $slotIds[0]);
+    check($response['status'] === 200 && (int) $response['json']['slot']['id'] === $slotIds[0], 'Booking detail API returns the correct selected slot');
+    $response = $first->post('/backend/book.php', ['slot_id' => $slotIds[0], 'patient_id' => 999999]);
+    check($response['status'] === 201 && $response['json']['success'] && $response['json']['appointment_id'] > 0, 'Booking returns success and a reservation number');
     $findBooking = $connection->prepare('SELECT * FROM appointments WHERE slot_id = ?');
     $findBooking->execute([$slotIds[0]]);
     $booking = $findBooking->fetch();
-    check($booking && (int) $booking['patient_id'] === $patientIds[0], 'Booking persisted for session patient, ignoring forged patient_id');
-    $response = $first->request('/frontend/doctors.php');
-    check(!str_contains($response['body'], 'booking.php?slot_id=' . $slotIds[0] . '"'), 'Booked time removed from available times');
-    $first->post('/backend/booking.php', ['slot_id' => $slotIds[0]]);
-    check(str_contains($first->request('/frontend/appointments.php')['body'], 'already booked'), 'Repeated booking POST rejected');
-    $first->post('/backend/booking.php', ['slot_id' => $slotIds[1]]);
-    check(str_contains($first->request('/frontend/appointments.php')['body'], 'already booked'), 'Same patient cannot reserve two doctors at the same time');
-    $first->post('/backend/booking.php', ['slot_id' => $slotIds[2]]);
-    check(str_contains($first->request('/frontend/doctors.php')['body'], 'already passed'), 'Past appointment rejected');
-    $first->post('/backend/booking.php', ['slot_id' => '999999999']);
-    check(str_contains($first->request('/frontend/doctors.php')['body'], 'invalid or'), 'Nonexistent appointment rejected');
-    $first->post('/backend/booking.php', ['slot_id' => '1 OR 1=1']);
-    check(str_contains($first->request('/frontend/doctors.php')['body'], 'valid appointment'), 'Malformed appointment ID rejected');
-
+    check($booking && (int) $booking['patient_id'] === (int) $patient['id'], 'Reservation saved for the session patient, ignoring forged patient_id');
+    $response = $first->request('/backend/doctors.php');
+    check(!in_array($slotIds[0], array_map('intval', array_column($response['json']['slots'], 'id')), true), 'Booked slot removed from available times');
+    check($first->request('/backend/doctors.php?slot_id=' . $slotIds[0])['status'] === 404, 'Occupied slot cannot be loaded for new confirmation');
+    check($first->post('/backend/book.php', ['slot_id' => $slotIds[0]])['status'] === 409, 'Repeated booking POST rejected');
+    check($first->post('/backend/book.php', ['slot_id' => $slotIds[1]])['status'] === 422, 'Past appointment rejected');
+    check($first->post('/backend/book.php', ['slot_id' => 999999999])['status'] === 422, 'Nonexistent appointment rejected');
+    check($first->post('/backend/book.php', ['slot_id' => '1 OR 1=1'])['status'] === 422, 'Malformed appointment ID rejected');
     $second = new TestBrowser();
-    $second->request('/frontend/register.php');
+    $second->session();
     $registration['email'] = $email2;
-    $registration['full_name'] = '<script>alert(1)</script>';
-    $second->post('/backend/register.php', $registration);
-    $findPatient->execute([$email2]);
-    $patient2 = $findPatient->fetch();
-    if ($patient2) {
-        $patientIds[] = (int) $patient2['id'];
-    }
-    check((bool) $patient2, 'Second test patient created');
-    $second->request('/frontend/login.php');
+    $registration['full_name'] = 'Second Test Patient';
+    check($second->post('/backend/register.php', $registration)['status'] === 201, 'Second patient registered');
     $second->post('/backend/login.php', ['email' => $email2, 'password' => $password]);
-    $response = $second->request('/frontend/doctors.php');
-    check(str_contains($response['body'], '&lt;script&gt;') && !str_contains($response['body'], '<script>alert(1)</script>'), 'Patient name escaped in HTML');
-    $second->post('/backend/booking.php', ['slot_id' => $slotIds[0]]);
-    check(str_contains($second->request('/frontend/appointments.php')['body'], 'already booked'), 'Another patient cannot reserve an occupied slot');
-    $response = $second->request('/frontend/appointments.php?patient_id=' . $patientIds[0]);
-    check(str_contains($response['body'], 'no booked appointments'), 'Patient cannot read another patient reservations via query parameter');
-    $countBookings = $connection->prepare('SELECT COUNT(*) FROM appointments WHERE patient_id = ?');
-    $countBookings->execute([$patientIds[0]]);
-    check((int) $countBookings->fetchColumn() === 1, 'All duplicate/invalid attempts left exactly one saved booking');
-    $first->request('/frontend/appointments.php');
+    $second->session();
+    check($second->post('/backend/book.php', ['slot_id' => $slotIds[0]])['status'] === 409, 'Another patient cannot book the occupied slot');
+    $findBooking->execute([$slotIds[0]]);
+    check(count($findBooking->fetchAll()) === 1, 'Duplicate requests left exactly one reservation');
+    try {
+        $connection->prepare('INSERT INTO appointments (patient_id, slot_id) VALUES (?, ?)')->execute([$patient['id'], $slotIds[0]]);
+        throw new RuntimeException('Database unexpectedly accepted a duplicate reservation');
+    } catch (PDOException $error) {
+        check((int) ($error->errorInfo[1] ?? 0) === 1062, 'MySQL UNIQUE(slot_id) independently rejects a duplicate');
+    }
+    try {
+        $connection->prepare('INSERT INTO appointments (patient_id, slot_id) VALUES (?, ?)')->execute([999999999, $slotIds[1]]);
+        throw new RuntimeException('Database unexpectedly accepted a missing patient');
+    } catch (PDOException $error) {
+        check((int) ($error->errorInfo[1] ?? 0) === 1452, 'Patient foreign key independently rejects an invalid reference');
+    }
     $first->post('/backend/logout.php', []);
-    check($first->request('/frontend/appointments.php')['status'] === 303, 'Logout removes authenticated access');
+    check(!$first->session()['logged_in'] && $first->request('/backend/doctors.php')['status'] === 401, 'Logout removes authenticated access');
 } catch (Throwable $error) {
     $failed = true;
     fwrite(STDERR, $error->getMessage() . PHP_EOL);
 } finally {
-    // Clean only the two uniquely named accounts and slots created by this run.
     $findIds = $connection->prepare('SELECT id FROM patients WHERE email IN (?, ?)');
     $findIds->execute([$email1, $email2]);
-    $patientIds = $findIds->fetchAll(PDO::FETCH_COLUMN);
-    foreach ($patientIds as $id) {
+    foreach ($findIds->fetchAll(PDO::FETCH_COLUMN) as $id) {
         $connection->prepare('DELETE FROM appointments WHERE patient_id = ?')->execute([$id]);
         $connection->prepare('DELETE FROM patients WHERE id = ?')->execute([$id]);
     }
     foreach ($slotIds as $id) {
-        $connection->prepare('DELETE FROM appointment_slots WHERE id = ?')->execute([$id]);
+        $connection->prepare('DELETE FROM slots WHERE id = ?')->execute([$id]);
     }
 }
 echo $passed . ' checks passed.' . PHP_EOL;

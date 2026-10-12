@@ -1,19 +1,21 @@
 <?php
-// Shared session, validation and form helpers. No framework is used.
+// Shared session and JSON helpers. No framework is used.
 date_default_timezone_set('Asia/Riyadh');
-if (session_status() === PHP_SESSION_NONE) {
-    ini_set('session.use_strict_mode', '1');
-    session_set_cookie_params([
-        'httponly' => true,
-        'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
-        'samesite' => 'Lax',
-    ]);
-    session_start();
-}
+ini_set('session.use_strict_mode', '1');
+session_set_cookie_params([
+    'httponly' => true,
+    'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+    'samesite' => 'Lax',
+]);
+session_start();
+header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-store');
 
-function escape($value): string
+function respond(array $data, int $status = 200): void
 {
-    return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+    http_response_code($status);
+    echo json_encode($data, JSON_UNESCAPED_UNICODE);
+    exit;
 }
 
 function csrf_token(): string
@@ -27,14 +29,12 @@ function csrf_token(): string
 function require_post(): void
 {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        http_response_code(405);
         header('Allow: POST');
-        exit('This action requires a submitted form.');
+        respond(['success' => false, 'message' => 'This action requires POST.'], 405);
     }
     $token = $_POST['csrf_token'] ?? '';
     if (!is_string($token) || !hash_equals(csrf_token(), $token)) {
-        http_response_code(403);
-        exit('Invalid form token. Return to the page and try again.');
+        respond(['success' => false, 'message' => 'Invalid form token. Refresh the page and try again.'], 403);
     }
 }
 
@@ -44,22 +44,10 @@ function input(string $name): string
     return is_string($value) ? trim($value) : '';
 }
 
-function redirect_to(string $page): void
-{
-    header('Location: ../frontend/' . $page, true, 303);
-    exit;
-}
-
-function flash(string $message, string $type = 'error'): void
-{
-    $_SESSION['flash'] = ['message' => $message, 'type' => $type];
-}
-
 function require_patient(): int
 {
     if (empty($_SESSION['patient_id'])) {
-        flash('Please log in before viewing or booking appointments.');
-        redirect_to('login.php');
+        respond(['success' => false, 'message' => 'Please log in first.'], 401);
     }
     return (int) $_SESSION['patient_id'];
 }

@@ -21,7 +21,6 @@ button, .button { display: inline-block; padding: 11px 18px; border: none; borde
 .small { font-size: 13px; padding: 6px 12px; }
 .form-link { text-align: center; margin-bottom: 0; }
 .nav-button { background: transparent; color: var(--primary); padding: 0; font-weight: normal; }
-.logout-form { margin: 0; }
 .alert { padding: 14px 20px; margin-bottom: 24px; border: 1px solid; border-radius: 8px; }
 .success { color: #16533a; background: #e8f6ee; border-color: #9cc8b0; }
 .error { color: #7d2626; background: #fff0f0; border-color: #e4b0b0; }
@@ -31,12 +30,7 @@ button, .button { display: inline-block; padding: 11px 18px; border: none; borde
 .slot-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--border); font-size: 14px; }
 .booking-details dt { font-size: 13px; color: var(--muted); margin-top: 16px; }
 .booking-details dd { margin: 0; font-weight: bold; }
-.table-wrapper { overflow-x: auto; background: white; border: 1px solid var(--border); border-radius: 8px; }
-table { width: 100%; border-collapse: collapse; text-align: left; }
-th, td { padding: 16px; border-bottom: 1px solid var(--border); }
-th { background: #e9f1f3; }
-.empty-state { background: white; padding: 24px; border: 1px solid var(--border); border-radius: 8px; }
 footer { text-align: center; padding: 24px; font-size: 13px; color: var(--muted); }
-.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 :focus-visible { outline: 3px solid #d38b18; outline-offset: 3px; }
 @media (max-width: 700px) { .doctor-grid { grid-template-columns: 1fr; } .form-card { padding: 24px; } main { padding: 0 16px; } h1 { font-size: 26px; } }
+button:disabled { opacity: 0.6; cursor: default; }

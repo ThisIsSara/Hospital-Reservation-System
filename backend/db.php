@@ -1,4 +1,5 @@
 <?php
+// Aryam: PDO connection. Credentials belong only in config.local.php.
 function database(): PDO
 {
     static $connection = null;
@@ -7,26 +8,22 @@ function database(): PDO
     }
     $path = __DIR__ . '/config.local.php';
     if (!is_file($path)) {
-        http_response_code(503);
-        exit('Database setup is missing. Follow the README to create config.local.php.');
+        respond(['success' => false, 'message' => 'Database configuration is missing. Follow the README.'], 503);
     }
     $config = require $path;
     try {
         $connection = new PDO(
             'mysql:host=' . $config['host'] . ';port=' . $config['port'] .
             ';dbname=' . $config['database'] . ';charset=utf8mb4',
-            $config['username'],
-            $config['password'],
+            $config['username'], $config['password'],
             [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
              PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
              PDO::ATTR_EMULATE_PREPARES => false]
         );
-        // Match PHP and MySQL when determining whether a slot is in the future.
         $connection->exec("SET time_zone = '+03:00'");
     } catch (PDOException $error) {
         error_log('Database connection failed: ' . $error->getMessage());
-        http_response_code(503);
-        exit('Cannot connect to the database. Check the local configuration and MySQL service.');
+        respond(['success' => false, 'message' => 'Cannot connect to MySQL. Check the local configuration and service.'], 503);
     }
     return $connection;
 }
