@@ -161,6 +161,25 @@ async function loadAppointments() {
     }
 }
 
+async function loadProfile() {
+    const data = await api('profile.php');
+    document.getElementById('full_name').value = data.patient.full_name;
+    document.getElementById('email').value = data.patient.email;
+    document.getElementById('profile-form').addEventListener('submit', async event => {
+        event.preventDefault();
+        const button = event.currentTarget.querySelector('button');
+        button.disabled = true;
+        try {
+            const result = await api('profile.php', new FormData(event.currentTarget));
+            showMessage(result.message, true);
+        } catch (error) {
+            showMessage(error.message);
+        } finally {
+            button.disabled = false;
+        }
+    });
+}
+
 function connectForm(id, endpoint) {
     const form = document.getElementById(id);
     if (!form) return;
@@ -204,7 +223,7 @@ async function initialize() {
     try {
         const session = await api('session.php');
         csrfToken = session.csrf_token;
-        if ((page === 'doctors' || page === 'booking' || page === 'appointments') && !session.logged_in) {
+        if ((page === 'doctors' || page === 'booking' || page === 'appointments' || page === 'profile') && !session.logged_in) {
             window.location.href = 'login.html';
             return;
         }
@@ -225,9 +244,10 @@ async function initialize() {
         }
         if (page === 'booking') await loadBooking();
         if (page === 'appointments') await loadAppointments();
+        if (page === 'profile') await loadProfile();
     } catch (error) {
         showMessage(error.message);
-        if (error.status === 401 && (page === 'doctors' || page === 'booking' || page === 'appointments')) window.location.href = 'login.html';
+        if (error.status === 401 && (page === 'doctors' || page === 'booking' || page === 'appointments' || page === 'profile')) window.location.href = 'login.html';
     }
 }
 initialize();
