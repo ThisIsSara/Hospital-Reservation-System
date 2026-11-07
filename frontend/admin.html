@@ -52,6 +52,12 @@
 </section>
 <section class="doctor-card admin-section">
     <h2>Patient Accounts</h2>
+    <form id="patient-form" class="inline-form">
+        <input name="name" placeholder="Patient name" maxlength="120" aria-label="Patient name" required>
+        <input name="email" type="email" placeholder="Email" maxlength="190" aria-label="Patient email" required>
+        <input name="password" type="password" placeholder="Password (8+ characters)" minlength="8" maxlength="72" aria-label="Patient password" required>
+        <button>Add Patient</button>
+    </form>
     <div id="patient-list"></div>
 </section>
 </main>
