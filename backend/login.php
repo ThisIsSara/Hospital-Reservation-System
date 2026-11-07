@@ -16,6 +16,7 @@ try {
         respond(['success' => false, 'message' => 'Incorrect email or password.'], 401);
     }
     session_regenerate_id(true);
+    unset($_SESSION['admin_id'], $_SESSION['admin_username']);
     $_SESSION['patient_id'] = (int) $patient['id'];
     $_SESSION['patient_name'] = $patient['full_name'];
     unset($_SESSION['csrf_token']);
