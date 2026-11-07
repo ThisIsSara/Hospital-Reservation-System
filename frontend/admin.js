@@ -120,6 +120,21 @@ async function load() {
     for (const reservation of data.appointments) {
         addRow(reservations, 'Reservation #' + reservation.id + ' — ' + reservation.patient_name,
             reservation.doctor_name + ' · ' + reservation.appointment_date + ' · ' + reservation.appointment_time.slice(0, 5), [
+            actionButton('Reschedule', () => {
+                const options = data.slots.filter(slot => slot.appointment_id === null &&
+                    new Date(slot.appointment_date + 'T' + slot.appointment_time).getTime() > Date.now());
+                if (!options.length) { notify('No available appointment times.'); return; }
+                const choices = options.map(slot => slot.id + ': ' + slot.doctor_name + ' — ' +
+                    slot.appointment_date + ' ' + slot.appointment_time.slice(0, 5)).join('\n');
+                const chosen = window.prompt('Choose a new slot ID from the list:\n' + choices);
+                if (chosen === null) return;
+                const id = Number(chosen.trim());
+                if (!Number.isInteger(id) || !options.some(slot => slot.id === id)) {
+                    notify('Enter one of the available slot IDs.');
+                    return;
+                }
+                act('reschedule_appointment', { id: reservation.id, slot_id: id });
+            }),
             actionButton('Cancel', () => {
                 if (confirm('Cancel reservation #' + reservation.id + '?'))
                     act('cancel_appointment', { id: reservation.id });
