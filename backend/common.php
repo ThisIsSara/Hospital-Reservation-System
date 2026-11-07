@@ -44,6 +44,14 @@ function input(string $name): string
     return is_string($value) ? trim($value) : '';
 }
 
+function require_admin(): int
+{
+    if (empty($_SESSION['admin_id'])) {
+        respond(['success' => false, 'message' => 'Administrator login required.'], 401);
+    }
+    return (int) $_SESSION['admin_id'];
+}
+
 function require_patient(): int
 {
     if (empty($_SESSION['patient_id'])) {
