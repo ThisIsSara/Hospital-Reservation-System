@@ -88,6 +88,25 @@ async function loadBooking() {
     document.querySelector('#booking-form button').disabled = false;
 }
 
+async function loadAppointments() {
+    const data = await api('appointments.php');
+    const list = document.getElementById('appointments-list');
+    list.replaceChildren();
+    if (data.appointments.length === 0) {
+        list.append(textElement('p', 'You have no appointments yet.'));
+        return;
+    }
+    for (const appointment of data.appointments) {
+        const card = document.createElement('article');
+        card.className = 'doctor-card';
+        card.append(textElement('p', appointment.specialty, 'eyebrow'));
+        card.append(textElement('h2', appointment.doctor_name));
+        card.append(textElement('p', appointment.appointment_date + ' · ' + appointment.appointment_time.slice(0, 5) + ' (Riyadh)'));
+        card.append(textElement('p', 'Reservation #' + appointment.id));
+        list.append(card);
+    }
+}
+
 function connectForm(id, endpoint) {
     const form = document.getElementById(id);
     if (!form) return;
@@ -131,7 +150,7 @@ async function initialize() {
     try {
         const session = await api('session.php');
         csrfToken = session.csrf_token;
-        if ((page === 'doctors' || page === 'booking') && !session.logged_in) {
+        if ((page === 'doctors' || page === 'booking' || page === 'appointments') && !session.logged_in) {
             window.location.href = 'login.html';
             return;
         }
@@ -151,9 +170,10 @@ async function initialize() {
             document.getElementById('specialty-filter').addEventListener('change', loadDoctors);
         }
         if (page === 'booking') await loadBooking();
+        if (page === 'appointments') await loadAppointments();
     } catch (error) {
         showMessage(error.message);
-        if (error.status === 401 && (page === 'doctors' || page === 'booking')) window.location.href = 'login.html';
+        if (error.status === 401 && (page === 'doctors' || page === 'booking' || page === 'appointments')) window.location.href = 'login.html';
     }
 }
 initialize();
