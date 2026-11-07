@@ -133,6 +133,17 @@ try {
             $stmt = $db->prepare('DELETE FROM appointments WHERE id = ?');
             $stmt->execute([$id]);
             break;
+        case 'add_patient':
+            $email = strtolower(input('email'));
+            $password = $_POST['password'] ?? '';
+            if ($name === '' || strlen($name) > 120 || strlen($email) > 190 ||
+                !filter_var($email, FILTER_VALIDATE_EMAIL) || !is_string($password) ||
+                strlen($password) < 8 || strlen($password) > 72) {
+                respond(['success' => false, 'message' => 'Enter valid patient name, email and password (8–72 characters).'], 422);
+            }
+            $stmt = $db->prepare('INSERT INTO patients (full_name, email, password_hash) VALUES (?, ?, ?)');
+            $stmt->execute([$name, $email, password_hash($password, PASSWORD_DEFAULT)]);
+            break;
         case 'update_patient':
             $email = strtolower(input('email'));
             if ($id === false || $name === '' || strlen($name) > 120 || strlen($email) > 190 || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
