@@ -103,6 +103,31 @@ try {
             $stmt = $db->prepare('DELETE FROM slots WHERE id = ?');
             $stmt->execute([$id]);
             break;
+        case 'reschedule_appointment':
+            $newSlotId = filter_var(input('slot_id'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            if ($id === false || $newSlotId === false) respond(['success' => false, 'message' => 'Choose a reservation and available time.'], 422);
+            $db->beginTransaction();
+            $stmt = $db->prepare('SELECT a.slot_id FROM appointments a WHERE a.id = ? FOR UPDATE');
+            $stmt->execute([$id]);
+            $current = $stmt->fetch();
+            if (!$current) {
+                $db->rollBack();
+                respond(['success' => false, 'message' => 'Reservation not found.'], 404);
+            }
+            if ((int) $current['slot_id'] === $newSlotId) {
+                $db->rollBack();
+                respond(['success' => false, 'message' => 'Choose a different appointment time.'], 422);
+            }
+            $stmt = $db->prepare('SELECT id FROM slots WHERE id = ? AND TIMESTAMP(appointment_date, appointment_time) > NOW() FOR UPDATE');
+            $stmt->execute([$newSlotId]);
+            if (!$stmt->fetch()) {
+                $db->rollBack();
+                respond(['success' => false, 'message' => 'The selected appointment time is not available.'], 422);
+            }
+            $stmt = $db->prepare('UPDATE appointments SET slot_id = ? WHERE id = ?');
+            $stmt->execute([$newSlotId, $id]);
+            $db->commit();
+            break;
         case 'cancel_appointment':
             if ($id === false) respond(['success' => false, 'message' => 'Choose a reservation.'], 422);
             $stmt = $db->prepare('DELETE FROM appointments WHERE id = ?');
