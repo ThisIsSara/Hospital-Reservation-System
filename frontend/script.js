@@ -103,6 +103,23 @@ async function loadAppointments() {
         card.append(textElement('h2', appointment.doctor_name));
         card.append(textElement('p', appointment.appointment_date + ' · ' + appointment.appointment_time.slice(0, 5) + ' (Riyadh)'));
         card.append(textElement('p', 'Reservation #' + appointment.id));
+        const cancelButton = textElement('button', 'Cancel Appointment', 'small');
+        cancelButton.type = 'button';
+        cancelButton.addEventListener('click', async () => {
+            if (!window.confirm('Cancel this appointment?')) return;
+            cancelButton.disabled = true;
+            try {
+                const form = new FormData();
+                form.set('appointment_id', appointment.id);
+                const result = await api('cancel.php', form);
+                showMessage(result.message, true);
+                await loadAppointments();
+            } catch (error) {
+                showMessage(error.message);
+                cancelButton.disabled = false;
+            }
+        });
+        card.append(cancelButton);
         list.append(card);
     }
 }
