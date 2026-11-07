@@ -186,7 +186,8 @@ async function start() {
         for (const [formId, action] of [
             ['specialty-form', 'add_specialty'],
             ['doctor-form', 'add_doctor'],
-            ['slot-form', 'add_slot']
+            ['slot-form', 'add_slot'],
+            ['patient-form', 'add_patient']
         ]) {
             document.getElementById(formId).addEventListener('submit', async event => {
                 event.preventDefault();
