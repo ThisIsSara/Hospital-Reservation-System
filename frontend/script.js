@@ -35,12 +35,22 @@ function textElement(tag, text, className = '') {
 
 async function loadDoctors() {
     const data = await api('doctors.php');
+    const filter = document.getElementById('specialty-filter');
+    const selected = filter.value;
+    const specialties = [...new Set(data.doctors.map(doctor => doctor.specialty))].sort();
+    filter.replaceChildren(new Option('All specialties', ''));
+    for (const specialty of specialties) filter.add(new Option(specialty, specialty));
+    filter.value = specialties.includes(selected) ? selected : '';
+    const visibleDoctors = data.doctors.filter(doctor => !filter.value || doctor.specialty === filter.value);
     const list = document.getElementById('doctors-list');
     list.replaceChildren();
+    if (visibleDoctors.length === 0) {
+        list.append(textElement('p', 'No doctors found for this specialty.'));
+    }
     if (data.doctors.length === 0) {
         list.append(textElement('p', 'No doctors have been added yet.'));
     }
-    for (const doctor of data.doctors) {
+    for (const doctor of visibleDoctors) {
         const card = document.createElement('article');
         card.className = 'doctor-card';
         card.append(textElement('p', doctor.specialty, 'eyebrow'));
@@ -138,6 +148,7 @@ async function initialize() {
         if (page === 'doctors') {
             document.getElementById('patient-welcome').textContent = 'Welcome, ' + session.patient_name;
             await loadDoctors();
+            document.getElementById('specialty-filter').addEventListener('change', loadDoctors);
         }
         if (page === 'booking') await loadBooking();
     } catch (error) {
