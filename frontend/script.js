@@ -90,6 +90,7 @@ async function loadBooking() {
 
 async function loadAppointments() {
     const data = await api('appointments.php');
+    const available = await api('doctors.php');
     const list = document.getElementById('appointments-list');
     list.replaceChildren();
     if (data.appointments.length === 0) {
@@ -103,6 +104,42 @@ async function loadAppointments() {
         card.append(textElement('h2', appointment.doctor_name));
         card.append(textElement('p', appointment.appointment_date + ' · ' + appointment.appointment_time.slice(0, 5) + ' (Riyadh)'));
         card.append(textElement('p', 'Reservation #' + appointment.id));
+        const appointmentStart = new Date(appointment.appointment_date + 'T' + appointment.appointment_time);
+        if (appointmentStart.getTime() > Date.now()) {
+            const rescheduleLabel = textElement('label', 'Change appointment time');
+            const select = document.createElement('select');
+            select.setAttribute('aria-label', 'New appointment time for reservation ' + appointment.id);
+            select.append(new Option('Choose a new time', ''));
+            for (const slot of available.slots) {
+                const doctor = available.doctors.find(item => String(item.id) === String(slot.doctor_id));
+                select.add(new Option(
+                    (doctor ? doctor.name + ' · ' : '') + slot.appointment_date + ' · ' + slot.appointment_time.slice(0, 5),
+                    String(slot.id)
+                ));
+            }
+            const rescheduleButton = textElement('button', 'Reschedule', 'small');
+            rescheduleButton.type = 'button';
+            rescheduleButton.addEventListener('click', async () => {
+                if (!select.value) {
+                    showMessage('Choose a new appointment time first.');
+                    return;
+                }
+                rescheduleButton.disabled = true;
+                try {
+                    const form = new FormData();
+                    form.set('appointment_id', appointment.id);
+                    form.set('slot_id', select.value);
+                    const result = await api('reschedule.php', form);
+                    await loadAppointments();
+                    showMessage(result.message, true);
+                } catch (error) {
+                    showMessage(error.message);
+                    rescheduleButton.disabled = false;
+                }
+            });
+            rescheduleLabel.append(select);
+            card.append(rescheduleLabel, rescheduleButton);
+        }
         const cancelButton = textElement('button', 'Cancel Appointment', 'small');
         cancelButton.type = 'button';
         cancelButton.addEventListener('click', async () => {
