@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Hospital Administration | Hospital Reservation System</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="admin.js" defer></script>
+</head>
+<body data-page="admin">
+<header class="site-header"><div class="header-inner">
+    <a class="brand" href="admin.html">Hospital Reservation System — Admin</a>
+    <nav><button id="admin-logout" class="nav-button" type="button">Log out</button></nav>
+</div></header>
+<main>
+<h1>Hospital Administration</h1>
+<div id="message" role="status" hidden></div>
+<section class="doctor-card">
+    <h2>Appointment Statistics</h2>
+    <div id="statistics" class="summary-grid">Loading...</div>
+</section>
+<section class="doctor-card admin-section">
+    <h2>Specialties</h2>
+    <form id="specialty-form" class="inline-form">
+        <input name="name" placeholder="New specialty name" maxlength="100" aria-label="New specialty" required>
+        <button>Add Specialty</button>
+    </form>
+    <div id="specialty-list"></div>
+</section>
+<section class="doctor-card admin-section">
+    <h2>Doctors</h2>
+    <form id="doctor-form" class="inline-form">
+        <input name="name" placeholder="Doctor name" maxlength="120" aria-label="Doctor name" required>
+        <select name="specialty" id="doctor-specialty" aria-label="Doctor specialty" required></select>
+        <button>Add Doctor</button>
+    </form>
+    <div id="doctor-list"></div>
+</section>
+<section class="doctor-card admin-section">
+    <h2>Appointment Times</h2>
+    <form id="slot-form" class="inline-form">
+        <select name="doctor_id" id="slot-doctor" aria-label="Choose doctor" required></select>
+        <input type="date" name="appointment_date" aria-label="Appointment date" required>
+        <input type="time" name="appointment_time" aria-label="Appointment time" required>
+        <button>Add Time</button>
+    </form>
+    <div id="slot-list"></div>
+</section>
+<section class="doctor-card admin-section">
+    <h2>Reservations</h2>
+    <div id="reservation-list"></div>
+</section>
+<section class="doctor-card admin-section">
+    <h2>Patient Accounts</h2>
+    <form id="patient-form" class="inline-form">
+        <input name="name" placeholder="Patient name" maxlength="120" aria-label="Patient name" required>
+        <input name="email" type="email" placeholder="Email" maxlength="190" aria-label="Patient email" required>
+        <input name="password" type="password" placeholder="Password (8+ characters)" minlength="8" maxlength="72" aria-label="Patient password" required>
+        <button>Add Patient</button>
+    </form>
+    <div id="patient-list"></div>
+</section>
+</main>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Admin Login | Hospital Reservation System</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="admin.js" defer></script>
+</head>
+<body data-page="admin-login">
+<header class="site-header"><div class="header-inner">
+    <a class="brand" href="login.html">Hospital Reservation System</a>
+    <nav><a href="login.html">Patient Login</a></nav>
+</div></header>
+<main>
+<section class="form-card">
+    <p class="eyebrow">Hospital staff</p><h1>Admin Login</h1>
+    <div id="message" role="status" hidden></div>
+    <form id="admin-login-form">
+        <label for="username">Username</label>
+        <input id="username" name="username" autocomplete="username" required>
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required>
+        <button type="submit">Login</button>
+    </form>
+</section>
+</main>
+</body>
+</html>

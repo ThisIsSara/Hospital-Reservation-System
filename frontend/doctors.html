@@ -10,7 +10,7 @@
 <body data-page="doctors">
 <header class="site-header"><div class="header-inner">
     <a class="brand" href="doctors.html">Hospital Reservation System</a>
-    <nav aria-label="Main navigation"><a href="doctors.html">Doctors &amp; Times</a><button id="logout-button" class="nav-button" type="button">Log out</button></nav>
+    <nav aria-label="Main navigation"><a href="doctors.html">Doctors &amp; Times</a><a href="appointments.html">My Appointments</a><a href="profile.html">My Profile</a><button id="logout-button" class="nav-button" type="button">Log out</button></nav>
 </div></header>
 <main>
 <noscript><p class="alert error">Enable JavaScript to submit forms and load appointment data.</p></noscript>
@@ -18,6 +18,8 @@
 <h1>Doctors &amp; available times</h1>
 <p>Select an appointment. All times are in Riyadh time (UTC+3).</p>
 <div id="message" role="status" hidden></div>
+<label for="specialty-filter">Filter by specialty</label>
+<select id="specialty-filter"><option value="">All specialties</option></select>
 <div id="doctors-list" class="doctor-grid"><p>Loading doctors and times...</p></div>
 </main>
 </body>

@@ -51,3 +51,13 @@ INSERT IGNORE INTO slots (id, doctor_id, appointment_date, appointment_time) VAL
 (4, 2, DATE_ADD(CURDATE(), INTERVAL 1 DAY), '10:30:00'),
 (5, 3, DATE_ADD(CURDATE(), INTERVAL 1 DAY), '11:00:00'),
 (6, 3, DATE_ADD(CURDATE(), INTERVAL 1 DAY), '12:00:00');
+
+-- Sample appointments for the Sprint 2 demonstration.
+-- Existing appointments and slots are preserved.
+INSERT IGNORE INTO slots (doctor_id, appointment_date, appointment_time) VALUES
+(1, '2026-12-15', '09:00:00'),
+(1, '2026-12-15', '10:00:00'),
+(3, '2026-12-15', '11:00:00'),
+(3, '2026-12-15', '12:00:00'),
+(2, '2026-12-16', '09:30:00'),
+(2, '2026-12-16', '10:30:00');

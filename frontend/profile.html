@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>My Profile | Hospital Reservation System</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js" defer></script>
+</head>
+<body data-page="profile">
+<header class="site-header"><div class="header-inner">
+    <a class="brand" href="doctors.html">Hospital Reservation System</a>
+    <nav aria-label="Main navigation"><a href="doctors.html">Doctors &amp; Times</a><a href="appointments.html">My Appointments</a><a href="profile.html">My Profile</a><button id="logout-button" class="nav-button" type="button">Log out</button></nav>
+</div></header>
+<main>
+<section class="form-card">
+    <p class="eyebrow">Patient portal</p>
+    <h1>My Profile</h1>
+    <div id="message" role="status" hidden></div>
+    <form id="profile-form">
+        <label for="full_name">Full name</label>
+        <input id="full_name" name="full_name" maxlength="120" required>
+        <label for="email">Email address</label>
+        <input id="email" name="email" type="email" maxlength="190" required>
+        <button type="submit">Save Changes</button>
+    </form>
+</section>
+</main>
+</body>
+</html>

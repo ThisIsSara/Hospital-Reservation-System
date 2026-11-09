@@ -35,12 +35,22 @@ function textElement(tag, text, className = '') {
 
 async function loadDoctors() {
     const data = await api('doctors.php');
+    const filter = document.getElementById('specialty-filter');
+    const selected = filter.value;
+    const specialties = [...new Set(data.doctors.map(doctor => doctor.specialty))].sort();
+    filter.replaceChildren(new Option('All specialties', ''));
+    for (const specialty of specialties) filter.add(new Option(specialty, specialty));
+    filter.value = specialties.includes(selected) ? selected : '';
+    const visibleDoctors = data.doctors.filter(doctor => !filter.value || doctor.specialty === filter.value);
     const list = document.getElementById('doctors-list');
     list.replaceChildren();
+    if (visibleDoctors.length === 0) {
+        list.append(textElement('p', 'No doctors found for this specialty.'));
+    }
     if (data.doctors.length === 0) {
         list.append(textElement('p', 'No doctors have been added yet.'));
     }
-    for (const doctor of data.doctors) {
+    for (const doctor of visibleDoctors) {
         const card = document.createElement('article');
         card.className = 'doctor-card';
         card.append(textElement('p', doctor.specialty, 'eyebrow'));
@@ -76,6 +86,98 @@ async function loadBooking() {
     document.getElementById('appointment-time').textContent = data.slot.appointment_time.slice(0, 5) + ' (Riyadh)';
     document.getElementById('slot_id').value = data.slot.id;
     document.querySelector('#booking-form button').disabled = false;
+}
+
+async function loadAppointments() {
+    const data = await api('appointments.php');
+    const available = await api('doctors.php');
+    const list = document.getElementById('appointments-list');
+    list.replaceChildren();
+    if (data.appointments.length === 0) {
+        list.append(textElement('p', 'You have no appointments yet.'));
+        return;
+    }
+    for (const appointment of data.appointments) {
+        const card = document.createElement('article');
+        card.className = 'doctor-card';
+        card.append(textElement('p', appointment.specialty, 'eyebrow'));
+        card.append(textElement('h2', appointment.doctor_name));
+        card.append(textElement('p', appointment.appointment_date + ' · ' + appointment.appointment_time.slice(0, 5) + ' (Riyadh)'));
+        card.append(textElement('p', 'Reservation #' + appointment.id));
+        const appointmentStart = new Date(appointment.appointment_date + 'T' + appointment.appointment_time);
+        if (appointmentStart.getTime() > Date.now()) {
+            const rescheduleLabel = textElement('label', 'Change appointment time');
+            const select = document.createElement('select');
+            select.setAttribute('aria-label', 'New appointment time for reservation ' + appointment.id);
+            select.append(new Option('Choose a new time', ''));
+            for (const slot of available.slots) {
+                const doctor = available.doctors.find(item => String(item.id) === String(slot.doctor_id));
+                select.add(new Option(
+                    (doctor ? doctor.name + ' · ' : '') + slot.appointment_date + ' · ' + slot.appointment_time.slice(0, 5),
+                    String(slot.id)
+                ));
+            }
+            const rescheduleButton = textElement('button', 'Reschedule', 'small');
+            rescheduleButton.type = 'button';
+            rescheduleButton.addEventListener('click', async () => {
+                if (!select.value) {
+                    showMessage('Choose a new appointment time first.');
+                    return;
+                }
+                rescheduleButton.disabled = true;
+                try {
+                    const form = new FormData();
+                    form.set('appointment_id', appointment.id);
+                    form.set('slot_id', select.value);
+                    const result = await api('reschedule.php', form);
+                    await loadAppointments();
+                    showMessage(result.message, true);
+                } catch (error) {
+                    showMessage(error.message);
+                    rescheduleButton.disabled = false;
+                }
+            });
+            rescheduleLabel.append(select);
+            card.append(rescheduleLabel, rescheduleButton);
+        }
+        const cancelButton = textElement('button', 'Cancel Appointment', 'small');
+        cancelButton.type = 'button';
+        cancelButton.addEventListener('click', async () => {
+            if (!window.confirm('Cancel this appointment?')) return;
+            cancelButton.disabled = true;
+            try {
+                const form = new FormData();
+                form.set('appointment_id', appointment.id);
+                const result = await api('cancel.php', form);
+                showMessage(result.message, true);
+                await loadAppointments();
+            } catch (error) {
+                showMessage(error.message);
+                cancelButton.disabled = false;
+            }
+        });
+        card.append(cancelButton);
+        list.append(card);
+    }
+}
+
+async function loadProfile() {
+    const data = await api('profile.php');
+    document.getElementById('full_name').value = data.patient.full_name;
+    document.getElementById('email').value = data.patient.email;
+    document.getElementById('profile-form').addEventListener('submit', async event => {
+        event.preventDefault();
+        const button = event.currentTarget.querySelector('button');
+        button.disabled = true;
+        try {
+            const result = await api('profile.php', new FormData(event.currentTarget));
+            showMessage(result.message, true);
+        } catch (error) {
+            showMessage(error.message);
+        } finally {
+            button.disabled = false;
+        }
+    });
 }
 
 function connectForm(id, endpoint) {
@@ -121,7 +223,7 @@ async function initialize() {
     try {
         const session = await api('session.php');
         csrfToken = session.csrf_token;
-        if ((page === 'doctors' || page === 'booking') && !session.logged_in) {
+        if ((page === 'doctors' || page === 'booking' || page === 'appointments' || page === 'profile') && !session.logged_in) {
             window.location.href = 'login.html';
             return;
         }
@@ -138,11 +240,14 @@ async function initialize() {
         if (page === 'doctors') {
             document.getElementById('patient-welcome').textContent = 'Welcome, ' + session.patient_name;
             await loadDoctors();
+            document.getElementById('specialty-filter').addEventListener('change', loadDoctors);
         }
         if (page === 'booking') await loadBooking();
+        if (page === 'appointments') await loadAppointments();
+        if (page === 'profile') await loadProfile();
     } catch (error) {
         showMessage(error.message);
-        if (error.status === 401 && (page === 'doctors' || page === 'booking')) window.location.href = 'login.html';
+        if (error.status === 401 && (page === 'doctors' || page === 'booking' || page === 'appointments' || page === 'profile')) window.location.href = 'login.html';
     }
 }
 initialize();
