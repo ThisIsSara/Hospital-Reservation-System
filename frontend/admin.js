@@ -7,6 +7,18 @@ function notify(text, success = false) {
     message.hidden = false;
     message.className = 'alert ' + (success ? 'success' : 'error');
     message.textContent = text;
+    message.scrollIntoView({ block: 'nearest' });
+}
+function notifyForm(form, text, success = false) {
+    let notice = form.nextElementSibling;
+    if (!notice || !notice.classList.contains('form-result')) {
+        notice = document.createElement('div');
+        notice.className = 'form-result';
+        notice.setAttribute('role', 'status');
+        form.insertAdjacentElement('afterend', notice);
+    }
+    notice.className = 'form-result alert ' + (success ? 'success' : 'error');
+    notice.textContent = text;
 }
 async function request(file, fields = null) {
     const options = { credentials: 'same-origin' };
@@ -191,17 +203,18 @@ async function start() {
         ]) {
             document.getElementById(formId).addEventListener('submit', async event => {
                 event.preventDefault();
-                const button = event.currentTarget.querySelector('button');
+                const form = event.currentTarget;
+                const button = form.querySelector('button');
                 button.disabled = true;
-                const fields = new FormData(event.currentTarget);
+                const fields = new FormData(form);
                 fields.set('action', action);
                 try {
                     const result = await request('admin_api.php', fields);
-                    event.currentTarget.reset();
+                    form.reset();
+                    notifyForm(form, result.message, true);
                     await load();
-                    notify(result.message, true);
                 } catch (error) {
-                    notify(error.message);
+                    notifyForm(form, error.message);
                 } finally {
                     button.disabled = false;
                 }
