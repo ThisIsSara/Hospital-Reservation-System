@@ -3,22 +3,34 @@ let token = '';
 const page = document.body.dataset.page;
 const message = document.getElementById('message');
 
+let noticeTimer;
+function clearNotices() {
+    clearTimeout(noticeTimer);
+    message.hidden = true;
+    document.querySelectorAll('.form-result').forEach(notice => notice.remove());
+}
+function dismissLater(notice) {
+    noticeTimer = setTimeout(() => {
+        if (notice === message) message.hidden = true;
+        else notice.remove();
+    }, 4000);
+}
 function notify(text, success = false) {
+    clearNotices();
     message.hidden = false;
     message.className = 'alert ' + (success ? 'success' : 'error');
     message.textContent = text;
     message.scrollIntoView({ block: 'nearest' });
+    dismissLater(message);
 }
 function notifyForm(form, text, success = false) {
-    let notice = form.nextElementSibling;
-    if (!notice || !notice.classList.contains('form-result')) {
-        notice = document.createElement('div');
-        notice.className = 'form-result';
-        notice.setAttribute('role', 'status');
-        form.insertAdjacentElement('afterend', notice);
-    }
+    clearNotices();
+    const notice = document.createElement('div');
     notice.className = 'form-result alert ' + (success ? 'success' : 'error');
+    notice.setAttribute('role', 'status');
     notice.textContent = text;
+    form.insertAdjacentElement('afterend', notice);
+    dismissLater(notice);
 }
 async function request(file, fields = null) {
     const options = { credentials: 'same-origin' };
